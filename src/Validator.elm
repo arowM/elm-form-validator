@@ -27,7 +27,7 @@ For example, let's assume a form having two inputs as follows.
         , anotherInput : Maybe String
         }
 
-The first step is define a validator for each input.
+The first step is to define a validator for each input.
 
     import Regex exposing (regex)
 
