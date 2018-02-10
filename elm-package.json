@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "summary": "This module provides a scalable way to validate a form.",
     "repository": "https://github.com/arowM/elm-form-validator.git",
     "license": "MIT",
