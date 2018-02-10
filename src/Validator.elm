@@ -1,0 +1,451 @@
+module Validator
+    exposing
+        ( Validator
+        , concat
+        , (||.)
+        , map
+        , lift
+        , liftMap
+        , required
+        , optional
+        , errors
+        , isValid
+        , custom
+        , pattern
+        , minBound
+        , maxBound
+        , maxLength
+        , minLength
+        )
+
+{-| This module provides a scalable way to validate a form by combining primitive validators.
+
+For example, let's assume a form having two inputs as follows.
+
+    type alias Form =
+        { sampleInput : Maybe Int
+        , anotherInput : Maybe String
+        }
+
+The first step is define a validator for each input.
+
+    import Regex exposing (regex)
+
+    type SampleError
+        = SampleBoundError
+        | SampleRequiredError
+
+    sampleValidator : Validator (Maybe Int) SampleError
+    sampleValidator =
+        required SampleRequiredError <|
+            concat
+                [ minBound SampleBoundError 10
+                , maxBound SampleBoundError 20
+                ]
+
+    errors sampleValidator (Just 15)
+    --> []
+
+    errors sampleValidator (Just 30)
+    --> [ SampleBoundError ]
+
+    errors sampleValidator Nothing
+    --> [ SampleRequiredError ]
+
+    isValid sampleValidator (Just 15)
+    --> True
+
+    isValid sampleValidator (Just 30)
+    --> False
+
+
+    type AnotherError
+        = AnotherLengthError
+        | AnotherPatternError
+
+    anotherValidator : Validator (Maybe String) AnotherError
+    anotherValidator =
+        optional <|
+            concat
+                [ maxLength AnotherLengthError 20
+                , pattern AnotherPatternError <| regex "^(http://|https://)"
+                ]
+
+    errors anotherValidator Nothing
+    --> []
+
+    errors anotherValidator (Just "foo")
+    --> [ AnotherPatternError ]
+
+    errors anotherValidator (Just "https://foo")
+    --> []
+
+    errors anotherValidator (Just "https://tooooooooooolong")
+    --> [ AnotherLengthError ]
+
+    errors anotherValidator (Just "ftp://tooooooooooolong")
+    --> [ AnotherLengthError, AnotherPatternError ]
+
+    isValid anotherValidator Nothing
+    --> True
+
+    isValid anotherValidator (Just "foo")
+    --> False
+
+The next step is combining these validators to create a validator for the entire form.
+
+    type FormError
+        = SampleError SampleError
+        | AnotherError AnotherError
+
+    formValidator : Validator Form FormError
+    formValidator =
+        concat
+            [ liftMap SampleError .sampleInput sampleValidator
+            , liftMap AnotherError .anotherInput anotherValidator
+            ]
+
+    errors formValidator
+        { sampleInput = Just 15
+        , anotherInput = Just "https://foo"
+        }
+    --> []
+
+    errors formValidator
+        { sampleInput = Nothing
+        , anotherInput = Nothing
+        }
+    --> [ SampleError SampleRequiredError ]
+
+    errors formValidator
+        { sampleInput = Nothing
+        , anotherInput = Just "foo"
+        }
+    --> [ SampleError SampleRequiredError
+    --> , AnotherError AnotherPatternError
+    --> ]
+
+    displayFormError : FormError -> String
+    displayFormError err =
+        case err of
+            SampleError SampleRequiredError ->
+                "Sample Input cannot be empty"
+            SampleError SampleBoundError ->
+                "Sample Input is out of bounds"
+            AnotherError AnotherLengthError ->
+                "Length of Another Input is toooo long"
+            AnotherError AnotherPatternError ->
+                "Another Input must begin with `http://` or `https://`"
+
+    map displayFormError <|
+        errors formValidator
+            { sampleInput = Nothing
+            , anotherInput = Nothing
+            }
+    --> [ "Sample Input cannot be empty" ]
+
+
+# Types
+
+@docs Validator
+
+
+# Functions to run Validator
+
+@docs errors
+@docs isValid
+
+
+# Primitive Validators
+
+@docs minBound
+@docs maxBound
+@docs maxLength
+@docs minLength
+@docs pattern
+@docs custom
+
+
+# Combinators
+
+@docs concat
+@docs (||.)
+
+
+# Handle `Maybe` values
+
+@docs required
+@docs optional
+
+
+# Operators
+
+@docs map
+@docs lift
+@docs liftMap
+
+-}
+
+import Regex exposing (Regex)
+
+
+{-| An opaque type representing validator for value of type `a`.
+-}
+type Validator a err
+    = Validator (a -> Validity err)
+
+
+type Validity err
+    = Valid
+    | Invalid (List err)
+
+
+{-| A convenient wrapper for validating required values.
+
+    errors (required "Cannot be empty" <| minBound "Too small" 10) Nothing
+    --> [ "Cannot be empty" ]
+
+    errors (required "Cannot be empty" <| minBound "Too small" 10) <| Just 100
+    --> []
+
+    errors (required "Cannot be empty" <| minBound "Too small" 10) <| Just 2
+    --> [ "Too small" ]
+
+-}
+required : err -> Validator a err -> Validator (Maybe a) err
+required err (Validator f) =
+    Validator <|
+        \ma ->
+            case ma of
+                Nothing ->
+                    Invalid [ err ]
+
+                Just a ->
+                    f a
+
+
+{-| A convenient wrapper for validating optional values.
+
+    errors (optional <| minLength "Too small" 10) Nothing
+    --> []
+
+    errors (optional <| minLength "Too small" 10) <| Just "enough long"
+    --> []
+
+    errors (optional <| minLength "Too small" 10) <| Just "short"
+    --> [ "Too small" ]
+
+-}
+optional : Validator a err -> Validator (Maybe a) err
+optional (Validator f) =
+    Validator <|
+        \ma ->
+            case ma of
+                Nothing ->
+                    Valid
+
+                Just a ->
+                    f a
+
+
+{-| Concatnate list of validators.
+
+    import Regex exposing (regex)
+
+    errors (concat [ minBound "Too small" 10, maxBound "Too large" 100 ]) 8
+    --> [ "Too small" ]
+
+    errors (concat [ minBound "Too small" 10, maxBound "Too large" 100 ]) 20
+    --> []
+
+    errors (concat [ minLength "Too short" 10, pattern "Does not match pattern" (regex "^foo") ]) "bar"
+    --> [ "Too short", "Does not match pattern" ]
+
+-}
+concat : List (Validator a err) -> Validator a err
+concat fs =
+    Validator <|
+        \a ->
+            case List.concatMap (\v -> errors v a) fs of
+                [] ->
+                    Valid
+
+                ls ->
+                    Invalid ls
+
+
+{-| Combine two validators on OR condition.
+
+    import Regex exposing (regex)
+
+    errors (minLength "Too short" 10 ||. pattern "Does not match pattern" (regex "^foo")) "foobar"
+    --> []
+
+    errors (minLength "Too short" 10 ||. pattern "Does not match pattern" (regex "^foo")) "enough long"
+    --> []
+
+    errors (minLength "Too short" 10 ||. pattern "Does not match pattern" (regex "^foo")) "short"
+    --> [ "Does not match pattern" ]
+
+-}
+(||.) : Validator a err -> Validator a err -> Validator a err
+(||.) (Validator f) (Validator g) =
+    Validator <|
+        \a ->
+            if f a == Valid then
+                Valid
+            else
+                g a
+infixr 2 ||.
+
+
+{-| Convert `err` type.
+-}
+map : (suberr -> err) -> Validator a suberr -> Validator a err
+map g (Validator f) =
+    Validator <|
+        \a ->
+            case f a of
+                Valid ->
+                    Valid
+
+                Invalid errs ->
+                    Invalid <| List.map g errs
+
+
+{-| `lift` is mainly used for accessing sub model of target value.
+
+    errors (lift .str <| minLength "Too short" 10) { str = "foo", int = 5 }
+    --> [ "Too short" ]
+-}
+lift : (a -> b) -> Validator b err -> Validator a err
+lift g (Validator f) =
+    Validator <| f << g
+
+
+{-| `liftMap` can convert a validator by `lift` and `map` at one time for convenience.
+-}
+liftMap : (suberr -> err) -> (a -> b) -> Validator b suberr -> Validator a err
+liftMap h g v =
+    map h <| lift g v
+
+
+{-| Run validator to a target value and returns all validation errors.
+-}
+errors : Validator a err -> a -> List err
+errors (Validator f) a =
+    case f a of
+        Valid ->
+            []
+
+        Invalid errs ->
+            errs
+
+
+{-| The `isValid` only checks if a target value is valid or not.
+-}
+isValid : Validator a err -> a -> Bool
+isValid (Validator f) a =
+    f a == Valid
+
+
+{-| A constructor for `Validator` from a function.
+
+    errors (custom (\n -> if n < 10 then Just "Too small" else Nothing)) 8
+    --> [ "Too small" ]
+-}
+custom : (a -> Maybe err) -> Validator a err
+custom f =
+    Validator <|
+        \a ->
+            case f a of
+                Nothing ->
+                    Valid
+
+                Just err ->
+                    Invalid [ err ]
+
+
+{-| A constructor for `Validator` from a regular expression.
+
+    import Regex exposing (regex)
+
+    errors (pattern "Pattern error" (regex "^foo")) "foobar"
+    --> []
+
+    errors (pattern "Pattern error" (regex "^foo")) "barfoo"
+    --> [ "Pattern error" ]
+
+-}
+pattern : err -> Regex -> Validator String err
+pattern err exp =
+    Validator <|
+        \str ->
+            if Regex.contains exp str then
+                Valid
+            else
+                Invalid [ err ]
+
+
+{-| A constructor for `Validator` providing minimum bound.
+
+    errors (minBound "Too small" 10) 2
+    --> [ "Too small" ]
+
+-}
+minBound : err -> comparable -> Validator comparable err
+minBound err bound =
+    Validator <|
+        \n ->
+            if n >= bound then
+                Valid
+            else
+                Invalid [ err ]
+
+
+{-| A constructor for `Validator` providing maximum bound.
+
+    errors (maxBound "Too large" 100) 200
+    --> [ "Too large" ]
+
+-}
+maxBound : err -> comparable -> Validator comparable err
+maxBound err bound =
+    Validator <|
+        \n ->
+            if n <= bound then
+                Valid
+            else
+                Invalid [ err ]
+
+
+{-| A constructor for `Validator` providing minimum length.
+
+    errors (minLength "Too short" 10) "short"
+    --> [ "Too short" ]
+
+-}
+minLength : err -> Int -> Validator String err
+minLength err bound =
+    Validator <|
+        \str ->
+            if String.length str >= bound then
+                Valid
+            else
+                Invalid [ err ]
+
+
+{-| A constructor for `Validator` providing maximum length.
+
+    errors (maxLength "Too long" 10) "tooooooooo long"
+    --> [ "Too long" ]
+
+-}
+maxLength : err -> Int -> Validator String err
+maxLength err bound =
+    Validator <|
+        \str ->
+            if String.length str <= bound then
+                Valid
+            else
+                Invalid [ err ]

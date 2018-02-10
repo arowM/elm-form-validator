@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "test": "$(npm bin)/elm-verify-examples"
+  },
+  "devDependencies": {
+    "elm-test": "^0.18.12",
+    "elm-verify-examples": "^2.3.1"
+  }
+}
