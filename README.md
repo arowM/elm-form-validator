@@ -140,4 +140,4 @@ map displayFormError <|
 
 ## Details
 
-See the [documentation](package.elm-lang.org/packages/arowM/elm-form-validator/latest/Validator).
+See the [documentation](http://package.elm-lang.org/packages/arowM/elm-form-validator/latest/Validator).
