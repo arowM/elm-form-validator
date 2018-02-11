@@ -10,6 +10,7 @@ module Validator
         , optional
         , errors
         , isValid
+        , succeed
         , custom
         , pattern
         , minBound
@@ -158,6 +159,7 @@ The next step is combining these validators to create a validator for the entire
 
 # Primitive Validators
 
+@docs succeed
 @docs minBound
 @docs maxBound
 @docs maxLength
@@ -317,6 +319,7 @@ map g (Validator f) =
 
     errors (lift .str <| minLength "Too short" 10) { str = "foo", int = 5 }
     --> [ "Too short" ]
+
 -}
 lift : (a -> b) -> Validator b err -> Validator a err
 lift g (Validator f) =
@@ -349,10 +352,28 @@ isValid (Validator f) a =
     f a == Valid
 
 
+{-| A constructor for `Validator` which always results to valid.
+
+    isValid succeed "foo"
+    --> True
+
+    isValid succeed <| Just 34
+    --> True
+
+    errors (required "Required error" succeed) <| Nothing
+    --> [ "Required error" ]
+
+-}
+succeed : Validator a err
+succeed =
+    Validator <| always Valid
+
+
 {-| A constructor for `Validator` from a function.
 
     errors (custom (\n -> if n < 10 then Just "Too small" else Nothing)) 8
     --> [ "Too small" ]
+
 -}
 custom : (a -> Maybe err) -> Validator a err
 custom f =
