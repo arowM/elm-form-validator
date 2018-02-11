@@ -8,6 +8,8 @@ module Validator
         , liftMap
         , required
         , optional
+        , when
+        , unless
         , errors
         , isValid
         , succeed
@@ -174,10 +176,12 @@ The next step is combining these validators to create a validator for the entire
 @docs (||.)
 
 
-# Handle `Maybe` values
+# Helper functions
 
 @docs required
 @docs optional
+@docs when
+@docs unless
 
 
 # Operators
@@ -248,6 +252,49 @@ optional (Validator f) =
 
                 Just a ->
                     f a
+
+
+{-| Only checks validity if a condition is `True`.
+
+    import Regex exposing (regex)
+
+    checkPrefix : Validator String String
+    checkPrefix = pattern "Incorrect format" (regex "^foo")
+
+    errors (when (\str -> String.length str > 2) checkPrefix) "ba"
+    --> []
+
+    errors (when (\str -> String.length str > 2) checkPrefix) "bar"
+    --> [ "Incorrect format" ]
+
+-}
+when : (a -> Bool) -> Validator a err -> Validator a err
+when g (Validator f) =
+    Validator <|
+        \a ->
+            if g a then
+                f a
+            else
+                Valid
+
+
+{-| Only checks validity unless a condition is `True`.
+
+    import Regex exposing (regex)
+
+    checkPrefix : Validator String String
+    checkPrefix = pattern "Incorrect format" (regex "^foo")
+
+    errors (unless (\str -> String.length str < 3) checkPrefix) "ba"
+    --> []
+
+    errors (unless (\str -> String.length str < 3) checkPrefix) "bar"
+    --> [ "Incorrect format" ]
+
+-}
+unless : (a -> Bool) -> Validator a err -> Validator a err
+unless g =
+    when (not << g)
 
 
 {-| Concatnate list of validators.
