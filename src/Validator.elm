@@ -13,6 +13,7 @@ module Validator
         , errors
         , isValid
         , succeed
+        , fail
         , custom
         , pattern
         , minBound
@@ -162,6 +163,7 @@ The next step is combining these validators to create a validator for the entire
 # Primitive Validators
 
 @docs succeed
+@docs fail
 @docs minBound
 @docs maxBound
 @docs maxLength
@@ -414,6 +416,23 @@ isValid (Validator f) a =
 succeed : Validator a err
 succeed =
     Validator <| always Valid
+
+
+{-| A constructor for `Validator` which always results to invalid.
+
+    errors (fail "error") "foo"
+    --> [ "error" ]
+
+    errors (fail "error") <| Just 34
+    --> [ "error" ]
+
+    errors (when (\n -> n < 0) <| fail "error") -1
+    --> [ "error" ]
+
+-}
+fail : err -> Validator a err
+fail err =
+    custom (always <| Just err)
 
 
 {-| A constructor for `Validator` from a function.
