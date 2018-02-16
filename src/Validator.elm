@@ -10,6 +10,7 @@ module Validator
         , optional
         , when
         , unless
+        , with
         , errors
         , isValid
         , succeed
@@ -184,6 +185,7 @@ The next step is combining these validators to create a validator for the entire
 @docs optional
 @docs when
 @docs unless
+@docs with
 
 
 # Operators
@@ -297,6 +299,43 @@ when g (Validator f) =
 unless : (a -> Bool) -> Validator a err -> Validator a err
 unless g =
     when (not << g)
+
+
+{-|
+
+    import Regex exposing (regex)
+
+    checkPrefix : Validator String String
+    checkPrefix = pattern "Incorrect format" (regex "^foo")
+
+    type alias Form =
+        { foo : Maybe String
+        , isRequired : Bool
+        }
+
+    form : Validator Form String
+    form =
+        with <| \{ isRequired } ->
+            lift .foo <|
+                (if isRequired then required "Required" else optional)
+                    checkPrefix
+
+    errors form { foo = Nothing, isRequired = False }
+    --> []
+
+    errors form { foo = Nothing, isRequired = True }
+    --> [ "Required" ]
+
+    errors form { foo = Just "bar" , isRequired = True }
+    --> [ "Incorrect format" ]
+-}
+with : (a -> Validator a err) -> Validator a err
+with f =
+    Validator <|
+        \a ->
+            case f a of
+                Validator g ->
+                    g a
 
 
 {-| Concatnate list of validators.
