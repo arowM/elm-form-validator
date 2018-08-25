@@ -176,7 +176,7 @@ The next step is combining these validators to create a validator for the entire
 # Combinators
 
 @docs concat
-@docs (||.)
+@docs combine
 
 
 # Helper functions
