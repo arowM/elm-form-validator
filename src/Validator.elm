@@ -1,27 +1,26 @@
-module Validator
-    exposing
-        ( Validator
-        , concat
-        , combine
-        , map
-        , lift
-        , liftMap
-        , required
-        , optional
-        , when
-        , unless
-        , with
-        , errors
-        , isValid
-        , succeed
-        , fail
-        , custom
-        , pattern
-        , minBound
-        , maxBound
-        , maxLength
-        , minLength
-        )
+module Validator exposing
+    ( Validator
+    , errors
+    , isValid
+    , succeed
+    , fail
+    , minBound
+    , maxBound
+    , maxLength
+    , minLength
+    , pattern
+    , custom
+    , concat
+    , or
+    , required
+    , optional
+    , when
+    , unless
+    , with
+    , map
+    , lift
+    , liftMap
+    )
 
 {-| This module provides a scalable way to validate a form by combining primitive validators.
 
@@ -176,7 +175,7 @@ The next step is combining these validators to create a validator for the entire
 # Combinators
 
 @docs concat
-@docs combine
+@docs or
 
 
 # Helper functions
@@ -278,6 +277,7 @@ when g (Validator f) =
         \a ->
             if g a then
                 f a
+
             else
                 Valid
 
@@ -328,6 +328,7 @@ unless g =
 
     errors form { foo = Just "bar" , isRequired = True }
     --> [ "Incorrect format" ]
+
 -}
 with : (a -> Validator a err) -> Validator a err
 with f =
@@ -369,7 +370,7 @@ concat fs =
     import Regex
 
     errors
-        (combine
+        (or
             (minLength "Too short" 10)
             (pattern "Does not match pattern"
                 (Regex.fromString "^foo"
@@ -381,7 +382,7 @@ concat fs =
     --> []
 
     errors
-        (combine
+        (or
             (minLength "Too short" 10)
             (pattern "Does not match pattern"
                 (Regex.fromString "^foo"
@@ -393,7 +394,7 @@ concat fs =
     --> []
 
     errors
-        (combine (minLength "Too short" 10)
+        (or (minLength "Too short" 10)
             (pattern "Does not match pattern"
                 (Regex.fromString "^foo"
                     |> Maybe.withDefault Regex.never
@@ -404,12 +405,13 @@ concat fs =
     --> [ "Does not match pattern" ]
 
 -}
-combine : Validator a err -> Validator a err -> Validator a err
-combine (Validator f) (Validator g) =
+or : Validator a err -> Validator a err -> Validator a err
+or (Validator f) (Validator g) =
     Validator <|
         \a ->
             if f a == Valid then
                 Valid
+
             else
                 g a
 
@@ -534,6 +536,7 @@ pattern err exp =
         \str ->
             if Regex.contains exp str then
                 Valid
+
             else
                 Invalid [ err ]
 
@@ -550,6 +553,7 @@ minBound err bound =
         \n ->
             if n >= bound then
                 Valid
+
             else
                 Invalid [ err ]
 
@@ -566,6 +570,7 @@ maxBound err bound =
         \n ->
             if n <= bound then
                 Valid
+
             else
                 Invalid [ err ]
 
@@ -582,6 +587,7 @@ minLength err bound =
         \str ->
             if String.length str >= bound then
                 Valid
+
             else
                 Invalid [ err ]
 
@@ -598,5 +604,6 @@ maxLength err bound =
         \str ->
             if String.length str <= bound then
                 Valid
+
             else
                 Invalid [ err ]
