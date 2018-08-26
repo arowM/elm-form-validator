@@ -2,7 +2,7 @@ module Validator
     exposing
         ( Validator
         , concat
-        , (||.)
+        , combine
         , map
         , lift
         , liftMap
@@ -34,7 +34,7 @@ For example, let's assume a form having two inputs as follows.
 
 The first step is to define a validator for each input.
 
-    import Regex exposing (regex)
+    import Regex
 
     type SampleError
         = SampleBoundError
@@ -73,7 +73,7 @@ The first step is to define a validator for each input.
         optional <|
             concat
                 [ maxLength AnotherLengthError 20
-                , pattern AnotherPatternError <| regex "^(http://|https://)"
+                , pattern AnotherPatternError <| Maybe.withDefault Regex.never <| Regex.fromString "^(http://|https://)"
                 ]
 
     errors anotherValidator Nothing
@@ -176,7 +176,7 @@ The next step is combining these validators to create a validator for the entire
 # Combinators
 
 @docs concat
-@docs (||.)
+@docs combine
 
 
 # Helper functions
@@ -260,10 +260,10 @@ optional (Validator f) =
 
 {-| Only checks validity if a condition is `True`.
 
-    import Regex exposing (regex)
+    import Regex
 
     checkPrefix : Validator String String
-    checkPrefix = pattern "Incorrect format" (regex "^foo")
+    checkPrefix = pattern "Incorrect format" (Regex.fromString "^foo" |> Maybe.withDefault Regex.never)
 
     errors (when (\str -> String.length str > 2) checkPrefix) "ba"
     --> []
@@ -284,10 +284,10 @@ when g (Validator f) =
 
 {-| Only checks validity unless a condition is `True`.
 
-    import Regex exposing (regex)
+    import Regex
 
     checkPrefix : Validator String String
-    checkPrefix = pattern "Incorrect format" (regex "^foo")
+    checkPrefix = pattern "Incorrect format" (Regex.fromString "^foo" |> Maybe.withDefault Regex.never)
 
     errors (unless (\str -> String.length str < 3) checkPrefix) "ba"
     --> []
@@ -303,10 +303,10 @@ unless g =
 
 {-|
 
-    import Regex exposing (regex)
+    import Regex
 
     checkPrefix : Validator String String
-    checkPrefix = pattern "Incorrect format" (regex "^foo")
+    checkPrefix = pattern "Incorrect format" (Regex.fromString "^foo" |> Maybe.withDefault Regex.never)
 
     type alias Form =
         { foo : Maybe String
@@ -340,7 +340,7 @@ with f =
 
 {-| Concatnate list of validators.
 
-    import Regex exposing (regex)
+    import Regex
 
     errors (concat [ minBound "Too small" 10, maxBound "Too large" 100 ]) 8
     --> [ "Too small" ]
@@ -348,7 +348,7 @@ with f =
     errors (concat [ minBound "Too small" 10, maxBound "Too large" 100 ]) 20
     --> []
 
-    errors (concat [ minLength "Too short" 10, pattern "Does not match pattern" (regex "^foo") ]) "bar"
+    errors (concat [ minLength "Too short" 10, pattern "Does not match pattern" (Regex.fromString "^foo" |> Maybe.withDefault Regex.never) ]) "bar"
     --> [ "Too short", "Does not match pattern" ]
 
 -}
@@ -366,27 +366,52 @@ concat fs =
 
 {-| Combine two validators on OR condition.
 
-    import Regex exposing (regex)
+    import Regex
 
-    errors (minLength "Too short" 10 ||. pattern "Does not match pattern" (regex "^foo")) "foobar"
+    errors
+        (combine
+            (minLength "Too short" 10)
+            (pattern "Does not match pattern"
+                (Regex.fromString "^foo"
+                    |> Maybe.withDefault Regex.never
+                )
+            )
+        )
+        "foobar"
     --> []
 
-    errors (minLength "Too short" 10 ||. pattern "Does not match pattern" (regex "^foo")) "enough long"
+    errors
+        (combine
+            (minLength "Too short" 10)
+            (pattern "Does not match pattern"
+                (Regex.fromString "^foo"
+                    |> Maybe.withDefault Regex.never
+                )
+            )
+        )
+        "enough long"
     --> []
 
-    errors (minLength "Too short" 10 ||. pattern "Does not match pattern" (regex "^foo")) "short"
+    errors
+        (combine (minLength "Too short" 10)
+            (pattern "Does not match pattern"
+                (Regex.fromString "^foo"
+                    |> Maybe.withDefault Regex.never
+                )
+            )
+        )
+        "short"
     --> [ "Does not match pattern" ]
 
 -}
-(||.) : Validator a err -> Validator a err -> Validator a err
-(||.) (Validator f) (Validator g) =
+combine : Validator a err -> Validator a err -> Validator a err
+combine (Validator f) (Validator g) =
     Validator <|
         \a ->
             if f a == Valid then
                 Valid
             else
                 g a
-infixr 2 ||.
 
 
 {-| Convert `err` type.
@@ -494,12 +519,12 @@ custom f =
 
 {-| A constructor for `Validator` from a regular expression.
 
-    import Regex exposing (regex)
+    import Regex
 
-    errors (pattern "Pattern error" (regex "^foo")) "foobar"
+    errors (pattern "Pattern error" (Regex.fromString "^foo" |> Maybe.withDefault Regex.never)) "foobar"
     --> []
 
-    errors (pattern "Pattern error" (regex "^foo")) "barfoo"
+    errors (pattern "Pattern error" (Regex.fromString "^foo" |> Maybe.withDefault Regex.never)) "barfoo"
     --> [ "Pattern error" ]
 
 -}
