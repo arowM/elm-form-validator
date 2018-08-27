@@ -12,6 +12,7 @@ module Validator exposing
     , custom
     , concat
     , or
+    , oneOf
     , required
     , optional
     , when
@@ -176,6 +177,7 @@ The next step is combining these validators to create a validator for the entire
 
 @docs concat
 @docs or
+@docs oneOf
 
 
 # Helper functions
@@ -414,6 +416,25 @@ or (Validator f) (Validator g) =
 
             else
                 g a
+
+
+{-| An alternative way to combine multiple validators by OR rule.
+If provided list is empty, resulting validator always succeeds.
+
+    or validatorA validatorB == oneOf [ validatorA, validatorB ]
+
+    or (or validatorA validatorB) validatorC == oneOf [ validatorA, validatorB, validatorC ]
+
+    oneOf [] == succeed
+-}
+oneOf : List (Validator a err) -> Validator a err
+oneOf ls =
+    case ls of
+        [] ->
+            succeed
+
+        (x :: xs) ->
+            List.foldl or x xs
 
 
 {-| Convert `err` type.
