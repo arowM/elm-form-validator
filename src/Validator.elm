@@ -142,7 +142,7 @@ The next step is combining these validators to create a validator for the entire
             AnotherError AnotherPatternError ->
                 "Another Input must begin with `http://` or `https://`"
 
-    map displayFormError <|
+    List.map displayFormError <|
         errors formValidator
             { sampleInput = Nothing
             , anotherInput = Nothing
