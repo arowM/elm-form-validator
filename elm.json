@@ -3,7 +3,7 @@
     "name": "arowM/elm-form-validator",
     "summary": "This module provides a scalable way to validate a form.",
     "license": "MIT",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "exposed-modules": [
         "Validator"
     ],
