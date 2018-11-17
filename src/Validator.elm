@@ -212,6 +212,8 @@ type Validity err
 
 
 {-| A convenient wrapper for validating required values.
+    It assumes input values are stored as `Maybe a` instead of just `a`.
+    This function is just a helper function, so you could declare your own for your situation.
 
     errors (required "Cannot be empty" <| minBound "Too small" 10) Nothing
     --> [ "Cannot be empty" ]
@@ -236,6 +238,8 @@ required err (Validator f) =
 
 
 {-| A convenient wrapper for validating optional values.
+    It assumes input values are stored as `Maybe a` instead of just `a`.
+    This function is just a helper function, so you could declare your own for your situation.
 
     errors (optional <| minLength "Too small" 10) Nothing
     --> []
