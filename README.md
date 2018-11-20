@@ -4,7 +4,7 @@
 
 ## Summary
 
-This module provides a scalable way to validate a form by combining primitive validators.
+This library provides a scalable way to validate a form by combining primitive validators.
 
 ## Example
 
@@ -16,6 +16,8 @@ type alias Form =
     , anotherInput : Maybe String
     }
 ```
+
+Don't worry! This library does not enforce you to use `Maybe` for inputs. It's just a sample.
 
 The first step is to define a validator for each input.
 
