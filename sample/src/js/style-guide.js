@@ -1,5 +1,6 @@
 require('../style/reset.scss');
 require('../style/layout.scss');
+require('../style/input.scss');
 require('../style/button.scss');
 require('../style/style-guide.scss');
 

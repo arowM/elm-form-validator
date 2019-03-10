@@ -3,13 +3,14 @@ module Input exposing
     , Config_
     , Input
     , config
+    , decorate
     , fromString
     , init
     , toString
     , view
     )
 
-import Html exposing (Attribute, Html, input)
+import Html exposing (Attribute, Html, div, input)
 import Html.Attributes as Attributes
 import Html.Events as Events
 import Json.Decode as Decode
@@ -75,6 +76,17 @@ view (Config conf) (Input mv) =
         []
 
 
+{-| Overwrite input view.
+Append new style in `styles/input.scss` and take its class name as first argument.
+-}
+decorate : String -> Attribute msg
+decorate key =
+    classList
+        [ ( "decorate", True )
+        , ( key, True )
+        ]
+
+
 
 -- Helper functions
 
@@ -95,3 +107,9 @@ It handles generated class name by CSS modules.
 class : String -> Attribute msg
 class name =
     Attributes.class <| "input__" ++ name
+
+
+classList : List ( String, Bool ) -> Attribute msg
+classList ps =
+    Attributes.classList <|
+        List.map (\( name, b ) -> ( "input__" ++ name, b )) ps

@@ -5,6 +5,7 @@ import Browser
 import Html exposing (Attribute, Html, div, text)
 import Html.Attributes as Attributes exposing (href)
 import Html.Lazy exposing (lazy)
+import Input exposing (Input)
 import Layout
 import Markdown
 
@@ -55,10 +56,11 @@ update _ model =
 -- VIEW
 
 
-view : Model -> Html msg
+view : Model -> Html Msg
 view _ =
     Atom.wrap
         [ title "Style guide"
+        , chapterInput
         , chapterLayout
         ]
 
@@ -72,6 +74,83 @@ title str =
             [ text str
             ]
         ]
+
+chapterInput : Html Msg
+chapterInput =
+    div []
+        [ markdown """
+
+## Input
+
+"""
+        , hashedSection "Default style"
+        , Atom.wrap
+            [ div
+                [ Layout.row
+                , Layout.alignCenter
+                ]
+                [ Atom.wrap
+                    [ text "Original"
+                    ]
+                , div
+                    [ Layout.wrap
+                    ]
+                    [ input
+                    ]
+                ]
+            , div
+                [ Layout.row
+                , Layout.alignCenter
+                ]
+                [ Atom.wrap
+                    [ text "Expanded"
+                    ]
+                , div
+                    [ Layout.expanded
+                    , Layout.wrap
+                    ]
+                    [ input
+                    ]
+                ]
+            ]
+        , hashedSection "Varidations"
+        , Atom.wrap
+            [ input_row []
+            , input_row [ Input.decorate "size1" ]
+            , input_row [ Input.decorate "size2" ]
+            , input_row [ Input.decorate "size3" ]
+            ]
+        ]
+
+
+input_row : List (Attribute Msg) -> Html Msg
+input_row attrs =
+    Atom.row
+        [ div
+            ( Input.decorate "default" :: Layout.wrap :: attrs )
+            [ input
+            ]
+        , div
+            ( Input.decorate "shadow1" :: Layout.wrap :: attrs )
+            [ input
+            ]
+        , div
+            ( Input.decorate "dark" :: Layout.wrap :: attrs )
+            [ input
+            ]
+        ]
+
+
+input : Html Msg
+input =
+    Input.view
+        (Input.config
+            { placeholder = "placeholder"
+            , type_ = "text"
+            , onChange = \_ -> ()
+            }
+        )
+        (Input.fromString "Sample")
 
 
 chapterLayout : Html msg

@@ -5,6 +5,7 @@ import Browser
 import Html exposing (Attribute, Html, button, div, text)
 import Html.Attributes as Attributes
 import Input exposing (Input)
+import Layout
 
 
 
@@ -59,8 +60,20 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    Atom.wrap
-        [ form_view model.form
+    div
+        [ class "wrapper" ]
+        [ background
+        , div
+            [ Layout.row
+            , Layout.justifyCenter
+            , class "body"
+            ]
+            [ div
+                [ class "body_inner"
+                ]
+                [ form_view model.form
+                ]
+            ]
         ]
 
 
@@ -68,6 +81,20 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.none
 
+
+
+-- Helper views
+
+
+background : Html Msg
+background =
+    div
+        [ class "background" ]
+        [ div
+            [ class "background_header"
+            ]
+            []
+        ]
 
 
 -- Form
@@ -133,93 +160,112 @@ form_update msg form =
 
 form_view : Form -> Html Msg
 form_view form =
-    Html.form
-        [ Attributes.novalidate True
+    div
+        [ class "form"
         ]
-        [ Atom.row
-            [ form_label "Name"
-            , form_control
-                [ form_description "What's your name?"
-                , form_subdescription "(required)"
-                , Input.view
-                    (Input.config
-                        { placeholder = "Sakura-chan"
-                        , type_ = "text"
-                        , onChange = ChangeName
-                        }
-                    )
-                    form.name
-                ]
+        [ Html.form
+            [ Attributes.novalidate True
+            , class "form_body"
             ]
-        , Atom.row
-            [ form_label "Age"
-            , form_control
-                [ form_description "How old are you? [years old]"
-                , form_subdescription "(optional)"
-                , Input.view
-                    (Input.config
-                        { placeholder = "2"
-                        , type_ = "number"
-                        , onChange = ChangeAge
-                        }
-                    )
-                    form.age
-                ]
-            ]
-        , Atom.row
-            [ form_label "Horns"
-            , form_control
-                [ form_description "How many horns do you have?"
-                , form_subdescription "(required)"
-                , Input.view
-                    (Input.config
-                        { placeholder = "0"
-                        , type_ = "number"
-                        , onChange = ChangeHorns
-                        }
-                    )
-                    form.horns
-                ]
-            ]
-        , Atom.row
-            [ form_label "Contact"
-            , form_control
-                [ form_subdescription "(Either of email or phone number is required)"
-                , Atom.row
-                    [ form_label "Email"
-                    , form_control
-                        [ form_description "Email address to contact you."
-                        , Input.view
+            [ Atom.row
+                [ form_label "Name"
+                , form_control
+                    [ form_description "What's your name?"
+                    , form_subdescription "(required)"
+                    , Atom.wrap2
+                        [ Input.view
                             (Input.config
-                                { placeholder = "you-goat-a-mail@example.com"
-                                , type_ = "email"
-                                , onChange = ChangeEmail
+                                { placeholder = "Sakura-chan"
+                                , type_ = "text"
+                                , onChange = ChangeName
                                 }
                             )
-                            form.email
-                        ]
-                    ]
-                , Atom.row
-                    [ form_label "Phone number"
-                    , form_control
-                        [ form_description "Phone number to contact you."
-                        , Input.view
-                            (Input.config
-                                { placeholder = "090-0000-0000"
-                                , type_ = "tel"
-                                , onChange = ChangePhone
-                                }
-                            )
-                            form.phone
+                            form.name
                         ]
                     ]
                 ]
-            ]
-        , div []
-            [ button
-                [ Attributes.type_ "button"
+            , Atom.row
+                [ form_label "Age"
+                , form_control
+                    [ form_description "How old are you? [years old]"
+                    , form_subdescription "(optional)"
+                    , Atom.wrap2
+                        [ Input.view
+                            (Input.config
+                                { placeholder = "2"
+                                , type_ = "number"
+                                , onChange = ChangeAge
+                                }
+                            )
+                            form.age
+                        ]
+                    ]
                 ]
-                [ text "Register"
+            , Atom.row
+                [ form_label "Horns"
+                , form_control
+                    [ form_description "How many horns do you have?"
+                    , form_subdescription "(required)"
+                    , Atom.wrap2
+                        [ Input.view
+                            (Input.config
+                                { placeholder = "0"
+                                , type_ = "number"
+                                , onChange = ChangeHorns
+                                }
+                            )
+                            form.horns
+                        ]
+                    ]
+                ]
+            , Atom.row
+                [ form_label "Contact"
+                , form_control
+                    [ form_subdescription "(Either of email or phone number is required)"
+                    , Atom.row
+                        [ form_label "Email"
+                        , form_control
+                            [ form_description "Email address to contact you."
+                            , Atom.wrap2
+                                [ Input.view
+                                    (Input.config
+                                        { placeholder = "you-goat-a-mail@example.com"
+                                        , type_ = "email"
+                                        , onChange = ChangeEmail
+                                        }
+                                    )
+                                    form.email
+                                ]
+                            ]
+                        ]
+                    , Atom.row
+                        [ form_label "Phone number"
+                        , form_control
+                            [ form_description "Phone number to contact you."
+                            , Atom.wrap2
+                                [ Input.view
+                                    (Input.config
+                                        { placeholder = "090-0000-0000"
+                                        , type_ = "tel"
+                                        , onChange = ChangePhone
+                                        }
+                                    )
+                                    form.phone
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            , div
+                [ class "row-button"
+                ]
+                [ button
+                    [ Attributes.type_ "button"
+                    , class "button"
+                    , Attributes.disabled True
+                    ]
+                    [ text "Register"
+                    ]
                 ]
             ]
         ]

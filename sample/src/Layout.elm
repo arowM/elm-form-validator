@@ -18,6 +18,7 @@ module Layout exposing
     , onTablet
     , row
     , wrap
+    , wrap2
     )
 
 import Html exposing (Attribute)
@@ -27,6 +28,14 @@ import Html.Attributes as Attributes
 wrap : Attribute msg
 wrap =
     class "wrap"
+
+
+wrap2 : Attribute msg
+wrap2 =
+    classList
+        [ ( "wrap", True )
+        , ( "quarter", True )
+        ]
 
 
 row : Attribute msg
@@ -129,3 +138,9 @@ It handles generated class name by CSS modules.
 class : String -> Attribute msg
 class name =
     Attributes.class <| "layout__" ++ name
+
+
+classList : List ( String, Bool ) -> Attribute msg
+classList ps =
+    Attributes.classList <|
+        List.map (\( name, b ) -> ( "layout__" ++ name, b )) ps

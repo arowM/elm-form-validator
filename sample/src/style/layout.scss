@@ -7,6 +7,10 @@
   padding: $half-padding;
   width: inherit;
   height: inherit;
+
+  &.quarter {
+    padding: $quarter-padding;
+  }
 }
 
 .row {
