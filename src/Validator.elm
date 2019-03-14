@@ -11,6 +11,7 @@ module Validator exposing
     , pattern
     , custom
     , concat
+    , apply
     , or
     , oneOf
     , required
@@ -194,6 +195,7 @@ The next step is combining these validators to create a validator for the entire
 @docs map
 @docs lift
 @docs liftMap
+@docs apply
 
 -}
 
@@ -212,8 +214,20 @@ type Validity err
 
 
 {-| A convenient wrapper for validating required values.
-    It assumes input values are stored as `Maybe a` instead of just `a`.
-    This function is just a helper function, so you could declare your own for your situation.
+It assumes input values are stored as `Maybe a` instead of just `a`.
+This function is just a helper function, so you could declare your own for your situation.
+
+    ```
+    required err f =
+        with <|
+            \ma ->
+                case ma of
+                    Nothing ->
+                        fail err
+
+                    Just a ->
+                        apply f a
+    ```
 
     errors (required "Cannot be empty" <| minBound "Too small" 10) Nothing
     --> [ "Cannot be empty" ]
@@ -226,20 +240,32 @@ type Validity err
 
 -}
 required : err -> Validator a err -> Validator (Maybe a) err
-required err (Validator f) =
-    Validator <|
+required err f =
+    with <|
         \ma ->
             case ma of
                 Nothing ->
-                    Invalid [ err ]
+                    fail err
 
                 Just a ->
-                    f a
+                    apply f a
 
 
 {-| A convenient wrapper for validating optional values.
-    It assumes input values are stored as `Maybe a` instead of just `a`.
-    This function is just a helper function, so you could declare your own for your situation.
+It assumes input values are stored as `Maybe a` instead of just `a`.
+This function is just a helper function, so you could declare your own for your situation.
+
+    ```
+    optional f =
+        with <|
+            \ma ->
+                case ma of
+                    Nothing ->
+                        succeed
+
+                    Just a ->
+                        apply f a
+    ```
 
     errors (optional <| minLength "Too small" 10) Nothing
     --> []
@@ -252,15 +278,15 @@ required err (Validator f) =
 
 -}
 optional : Validator a err -> Validator (Maybe a) err
-optional (Validator f) =
-    Validator <|
+optional f =
+    with <|
         \ma ->
             case ma of
                 Nothing ->
-                    Valid
+                    succeed
 
                 Just a ->
-                    f a
+                    apply f a
 
 
 {-| Only checks validity if a condition is `True`.
@@ -430,6 +456,7 @@ If provided list is empty, resulting validator always succeeds.
     or (or validatorA validatorB) validatorC == oneOf [ validatorA, validatorB, validatorC ]
 
     oneOf [] == succeed
+
 -}
 oneOf : List (Validator a err) -> Validator a err
 oneOf ls =
@@ -437,7 +464,7 @@ oneOf ls =
         [] ->
             succeed
 
-        (x :: xs) ->
+        x :: xs ->
             List.foldl or x xs
 
 
@@ -471,6 +498,29 @@ lift g (Validator f) =
 liftMap : (suberr -> err) -> (a -> b) -> Validator b suberr -> Validator a err
 liftMap h g v =
     map h <| lift g v
+
+
+{-| Convert to arbitrary type of validator, by providing actual value.
+
+    sampleValidator : Validator Int String
+    sampleValidator = concat [ minBound "Too small" 10, maxBound "Too large" 100 ]
+
+    errors (apply sampleValidator 12) <| 0
+    --> []
+
+    errors (apply sampleValidator 12) <| "String"
+    --> []
+
+    errors (apply sampleValidator 9) <| 12
+    --> [ "Too small" ]
+
+    errors (apply sampleValidator 9) <| "String"
+    --> [ "Too small" ]
+
+-}
+apply : Validator b err -> b -> Validator a err
+apply (Validator f) b =
+    Validator <| \_ -> f b
 
 
 {-| Run validator to a target value and returns all validation errors.
