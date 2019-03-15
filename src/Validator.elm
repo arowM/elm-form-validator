@@ -17,6 +17,8 @@ module Validator exposing
     , optional
     , when
     , unless
+    , int
+    , float
     , map
     , lift
     , liftMap
@@ -187,6 +189,8 @@ The next step is combining these validators to create a validator for the entire
 @docs optional
 @docs when
 @docs unless
+@docs int
+@docs float
 
 
 # Operators
@@ -211,6 +215,10 @@ type Validator a err
 type Validity err
     = Valid
     | Invalid (List err)
+
+
+
+-- Helper functions
 
 
 {-| A convenient wrapper for validating required values.
@@ -333,6 +341,73 @@ unless g =
     when (not << g)
 
 
+{-| Apply `Validator Int err` to strings after converting with `String.toInt`.
+
+    intValidator : Validator Int String
+    intValidator = minBound "Too small" 10
+
+    newValidator : Validator String String
+    newValidator = int "Not an integer" intValidator
+
+    errors newValidator "8"
+    --> [ "Too small" ]
+
+    errors newValidator "100"
+    --> []
+
+    errors newValidator "foo"
+    --> [ "Not an integer" ]
+
+-}
+int : err -> Validator Int err -> Validator String err
+int err v =
+    with <|
+        \str ->
+            case String.toInt str of
+                Just n ->
+                    apply v n
+
+                Nothing ->
+                    fail err
+
+
+{-| Apply `Validator Float err` to strings after converting with `String.toFloat`.
+
+    floatValidator : Validator Float String
+    floatValidator = minBound "Too small" 10
+
+    newValidator : Validator String String
+    newValidator = float "Not a float" floatValidator
+
+    errors newValidator "8"
+    --> [ "Too small" ]
+
+    errors newValidator "100"
+    --> []
+
+    errors newValidator "100.4"
+    --> []
+
+    errors newValidator "foo"
+    --> [ "Not a float" ]
+
+-}
+float : err -> Validator Float err -> Validator String err
+float err v =
+    with <|
+        \str ->
+            case String.toFloat str of
+                Just n ->
+                    apply v n
+
+                Nothing ->
+                    fail err
+
+
+
+-- Combinators
+
+
 {-| Concatnate list of validators.
 
     import Regex
@@ -430,6 +505,10 @@ oneOf ls =
             List.foldl or x xs
 
 
+
+-- Operators
+
+
 {-| Convert `err` type.
 -}
 map : (suberr -> err) -> Validator a suberr -> Validator a err
@@ -521,6 +600,10 @@ with f =
             case f a of
                 Validator g ->
                     g a
+
+
+
+-- Functions to run Validator
 
 
 {-| Run validator to a target value and returns all validation errors.
