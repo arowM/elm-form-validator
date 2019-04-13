@@ -60,10 +60,9 @@ It assures that input string follows rules bellow.
       - If not, it returns `Err InvalidPrefix`
 
 3.  It only contains digits or hiphen `'-'`
-
       - If not, it returns `Err InvalidCharacter`
 
-
+Here is example.
 
     import Result.Extra as Result
 
