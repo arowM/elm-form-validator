@@ -13,6 +13,7 @@ module Input exposing
 import Html exposing (Attribute, Html, div, input)
 import Html.Attributes as Attributes
 import Html.Events as Events
+import Html.Events.Extra as Events
 import Json.Decode as Decode
 
 
@@ -70,7 +71,7 @@ view (Config conf) (Input mv) =
         , Attributes.placeholder conf.placeholder
         , Attributes.value <|
             Maybe.withDefault "" mv
-        , onChange conf.onChange
+        , Events.onChange conf.onChange
         , class "input"
         ]
         []
@@ -81,9 +82,9 @@ Append new style in `styles/input.scss` and take its class name as first argumen
 -}
 decorate : String -> Attribute msg
 decorate key =
-    classList
-        [ ( "decorate", True )
-        , ( key, True )
+    class <| String.join " "
+        [ "decorate"
+        , key
         ]
 
 
@@ -91,25 +92,9 @@ decorate key =
 -- Helper functions
 
 
-onChange : (String -> msg) -> Attribute msg
-onChange tagger =
-    Events.stopPropagationOn "change" (Decode.map alwaysStop (Decode.map tagger Events.targetValue))
-
-
-alwaysStop : a -> ( a, Bool )
-alwaysStop x =
-    ( x, True )
-
-
 {-| A specialized version of `class` for this module.
 It handles generated class name by CSS modules.
 -}
 class : String -> Attribute msg
-class name =
-    Attributes.class <| "input__" ++ name
-
-
-classList : List ( String, Bool ) -> Attribute msg
-classList ps =
-    Attributes.classList <|
-        List.map (\( name, b ) -> ( "input__" ++ name, b )) ps
+class =
+    Util.classWithPrefix "input__"

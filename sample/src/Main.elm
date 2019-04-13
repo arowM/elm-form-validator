@@ -314,5 +314,5 @@ form_subdescription str =
 It handles generated class name by CSS modules.
 -}
 class : String -> Attribute msg
-class name =
-    Attributes.class <| "app__" ++ name
+class =
+    Util.classWithPrefix "app__"
