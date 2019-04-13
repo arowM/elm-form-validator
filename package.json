@@ -1,8 +1,7 @@
 {
   "scripts": {
-    "analyse": "elm-analyse",
     "format": "elm-format src",
-    "test": "elm-verify-examples"
+    "test": "elm-analyse && elm-format --validate src && elm-verify-examples"
   },
   "devDependencies": {
     "elm-test": "^0.19.0-rev3",
@@ -10,7 +9,7 @@
   },
   "dependencies": {
     "elm": "^0.19.0-bugfix2",
-    "elm-analyse": "^0.15.0",
+    "elm-analyse": "^0.16.0",
     "elm-format": "^0.8.1"
   }
 }
