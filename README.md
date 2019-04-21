@@ -2,6 +2,11 @@
 
 [![Build Status](https://travis-ci.org/arowM/elm-form-validator.svg?branch=master)](https://travis-ci.org/arowM/elm-form-validator)
 
+DEPRECATED
+
+This library was reborn as [elm-form-decoder](https://github.com/arowM/elm-form-decoder/).
+Please check it.
+
 ## Summary
 
 This library provides a scalable way to validate a form by combining primitive validators.
